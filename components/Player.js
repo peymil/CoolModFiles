@@ -199,6 +199,25 @@ function Player({ sharedTrackId, backSideContent, latestId }) {
     }
   };
 
+  const playByGenre = async (genreId) => {
+    const {parseFromString} = new DOMParser()
+    const resFirstPage = await fetch(`https://modarchive.org/index.php?query=${genreId}&request=search&search_type=genre`)
+    const firstPageDoc = parseFromString(await resFirstPage.text(),"text/html")
+    const optionList = firstPageDoc.querySelectorAll("form > p > select")
+    // Page numbers starting with 1
+    const lastPageNumber = parseInt(optionList[optionList.length - 1].textContent)
+    const randomPageNumber = Math.floor(( Math.random() * lastPageNumber )) + 1
+    let docToQuery 
+    if(randomPageNumber === 1){
+      docToQuery = firstPageDoc
+    } else {
+      const res = await fetch(`https://modarchive.org/index.php?query=${genreId}&request=search&search_type=genre&page=${randomPageNumber}`)
+      docToQuery =  parseFromString(await res.text(),"text/html")
+    }
+    const links = docToQuery.querySelectorAll('table > tbody > tr > td > a[title="Play"]')
+    const randomPageNum = getRandomInt(links.length)
+    return links[randomPageNum].href.match(/'\?([0-9]*)'/g)
+}
   const playMusic = (id) => {
     setLoading(true);
     setIsPlay(false);
