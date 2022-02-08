@@ -218,6 +218,21 @@ function Player({ sharedTrackId, backSideContent, latestId }) {
     const randomPageNum = getRandomInt(links.length)
     return links[randomPageNum].href.match(/'\?([0-9]*)'/g)
 }
+  const getGenres = async (genreId) => {
+    const parser = new DOMParser()
+    const res = await fetch(`https://modarchive.org/index.php?request=view_genres`)
+    const doc = parser.parseFromString(await res.text(),"text/html")
+    const aDocs = doc.querySelectorAll("table > tbody > tr> td > ul > li > a")
+    console.log(aDocs.length)
+    const genreIdExtractor = new RegExp("query\=([0-9]*)")
+    let genreIds = []
+    for(let aDoc of aDocs){
+      const matches = genreIdExtractor.exec(aDoc.href);
+      if(matches) genreIds.push(matches[1])
+    }
+    return genreIds
+}
+
   const playMusic = (id) => {
     setLoading(true);
     setIsPlay(false);
