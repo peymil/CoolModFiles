@@ -17,10 +17,12 @@ type MetaData = {
     message_raw: string;
     warnings: string;
 };
-export interface ChiptuneJsPlayer {
+
+class ChiptuneJsPlayer {
+    constructor(config: ChiptuneJsConfig);
     seek: (duration: number) => void;
     play: (buffer: unknown) => void;
-    load: (input: unknown) => AudioBuffer;
+     load: (input: unknown) => Promise<AudioBuffer>;
     duration: () => number;
     setVolume: (volume: number) => void;
     stop: () => void;
@@ -29,4 +31,9 @@ export interface ChiptuneJsPlayer {
     setRepeatCount: (repeatCount: number) => void;
     getPosition: () => number;
     metadata: () => MetaData;
+}
+class ChiptuneJsConfig {
+    constructor(repeatCount: number, volume: number);
+    repeatCount: number;
+    volume: number;
 }
