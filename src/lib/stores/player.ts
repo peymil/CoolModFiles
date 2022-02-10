@@ -1,7 +1,8 @@
-import { get, writable } from 'svelte/store';
-import type { Writable } from 'svelte/store';
+import { get, writable,readable } from 'svelte/store';
+import type { Writable,Readable } from 'svelte/store';
 
 class PlayerStore {
+    id: Writable<string> = writable("")
     volume: Writable<number[]> = writable([0]);
     playerInstance: ChiptuneJsPlayer;
     buffer: AudioBuffer;
@@ -9,26 +10,20 @@ class PlayerStore {
     isPlaying: Writable<boolean> = writable(false);
     metaData: Writable<ReturnType<ChiptuneJsPlayer['metadata']>> = writable(null);
     position: Writable<number[]> = writable([0]);
-    duration: Writable<number> = writable(0)
-    setup() {
+    duration: Writable<number> = writable(0);
+    setup(volume = 0) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        this.playerInstance = new ChiptuneJsPlayer(new ChiptuneJsConfig(0, this.volume[0]));
+        this.playerInstance = new ChiptuneJsPlayer(new ChiptuneJsConfig(0, volume));
         console.log('[player] player initialized');
-        
     }
-
     private initializeDurationWatch() {
-        console.log("this",this);
-        
-        let positionInterval
+        let positionInterval;
         this.isPlaying.subscribe((isPlaying) => {
             if (isPlaying || !positionInterval) {
                 positionInterval = setInterval(() => {
                     const newPosition = this.playerInstance.getPosition();
                     this.position.set([newPosition]);
-                    console.log("newPOsition",newPosition);
-                    
                     if (newPosition === 0) {
                         clearInterval(positionInterval);
                     }
@@ -39,28 +34,28 @@ class PlayerStore {
         });
     }
 
-    async load(id: string) {
-        this.buffer = await this.playerInstance.load(`jsplayer.php?moduleid=${id}`);
+    async load(idToLoad: string) {
+        this.loading.set(true);
+        this.buffer = await this.playerInstance.load(`jsplayer.php?moduleid=${idToLoad}`);
+        this.id.set(idToLoad)
         this.loading.set(false);
-        console.log('[player] buffer loaded, id:', id);
+        console.log('[player] buffer loaded, id:', idToLoad);
     }
 
     seek(value: number) {
-        console.log("seek",this);
-        
         // this.position.set([value])
         return this.playerInstance.seek(value);
     }
 
-    setVolume(volume:number){
-        this.volume.set([volume])
-        this.playerInstance.setVolume(volume)
+    setVolume(volume: number) {
+        this.volume.set([volume]);
+        this.playerInstance.setVolume(volume);
     }
     play() {
         this.playerInstance.play(this.buffer);
         this.metaData.set(this.playerInstance.metadata());
-        this.duration.set(this.playerInstance.duration())
-        this.initializeDurationWatch()
+        this.duration.set(this.playerInstance.duration());
+        this.initializeDurationWatch();
         this.isPlaying.set(true);
         console.log('[player] Player start');
     }
@@ -79,8 +74,6 @@ class PlayerStore {
     getPosition() {
         return this.playerInstance.getPosition();
     }
-
-
 }
 
 export default new PlayerStore();
