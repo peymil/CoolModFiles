@@ -1,11 +1,3 @@
-
-<script>
-    import Player from '$components/Player.svelte';
-    import { getRandomNumber } from '../utils';
-    export let maxId;
-    export let genres;
-</script>
-
 <script lang="ts" context="module">
     import type { Load } from '@sveltejs/kit';
 
@@ -63,12 +55,29 @@
     };
 </script>
 
-
+<script>
+    import Player from '$components/Player.svelte';
+    import { getRandomNumber } from '../utils';
+    import { BG_IMAGES } from '../constants';
+    export let maxId;
+    export let genres;
+</script>
 
 <svelte:head>
     <title>CoolModFiles.com - Play some cool MOD files!</title>
 </svelte:head>
 
-<section class="w-full h-screen flex justify-center items-start p-3 md:items-center">
+<section
+    style={`background-image: url("images/${BG_IMAGES[getRandomNumber(BG_IMAGES.length)]}")`}
+    class={`background w-full h-screen flex justify-center items-start p-3 md:items-center`}
+>
     <Player {maxId} />
 </section>
+
+<style lang="scss">
+    .background {
+        background-color: rgba(0, 0, 0, 0.5);
+        background-blend-mode: multiply;
+        background-size: cover;
+    }
+</style>
