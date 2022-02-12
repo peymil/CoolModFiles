@@ -116,6 +116,7 @@ ChiptuneJsPlayer.prototype.play = function (buffer) {
     libopenmpt._openmpt_module_set_repeat_count(processNode.modulePtr, this.config.repeatCount);
     this.currentPlayingNode = processNode;
     processNode.connect(this.context.destination);
+    this.currentPlayingNode.togglePause();
 };
 
 /**
