@@ -1,31 +1,32 @@
 <script lang="ts">
     import Slider from 'svelte-range-slider-pips';
-    import PlayerStore from '$lib/stores/player';
+    import PlayerStoreClass from '$lib/stores/player';
     import { onMount } from 'svelte';
     import { getRandomNumber } from '../utils';
-import VoiceButton from './VoiceButton.svelte';
-import player from '$lib/stores/player';
-
-    const { loading, isPlaying, metaData, volume, duration, position, id, prettifiedDuration,prettifiedPosition } =
-        PlayerStore;
+    import VoiceButton from './VoiceButton.svelte';
+    import player from '$lib/stores/player';
+    const PlayerStore = new PlayerStoreClass($$props.maxId);
+    const {
+        loading,
+        isPlaying,
+        metaData,
+        volume,
+        duration,
+        position,
+        id,
+        prettifiedDuration,
+        prettifiedPosition,
+    } = PlayerStore;
 
     let initalStart = true;
-    const getRandomModId = () => getRandomNumber($$props.maxId + 1).toString();
-    const loadAndPlayNewMod = async () => {
-        try {
-            PlayerStore.stop();
-            await PlayerStore.load(getRandomModId());
-        } catch (err) {
-            console.log('not found');
-            loadAndPlayNewMod();
-        }
-    };
+
     onMount(async () => {
         PlayerStore.setup();
-        await loadAndPlayNewMod()
+        await PlayerStore.next();
     });
-    $: console.log($position)
-    $: console.log($isPlaying)
+    
+    $: console.log($position);
+    $: console.log($isPlaying);
 </script>
 
 {#if $loading}
@@ -72,12 +73,10 @@ import player from '$lib/stores/player';
                 <span>{$prettifiedDuration}</span>
             </div>
             <div class="flex flex-row w-full justify-around">
-                <button on:click={() => PlayerStore.togglePause()}>Prev</button>
-                <button on:click={() => PlayerStore.togglePause()}
-                    >{$isPlaying ? 'Pause' : 'Play'}</button
-                >
-                <button on:click={loadAndPlayNewMod}>Next</button>
-                <VoiceButton onVolumeChange={PlayerStore.setVolume} volume={volume}/>
+                <button on:click={PlayerStore.previous}>Prev</button>
+                <button on:click={PlayerStore.togglePause}>{$isPlaying ? 'Pause' : 'Play'}</button>
+                <button on:click={PlayerStore.next}>Next</button>
+                <VoiceButton onVolumeChange={PlayerStore.setVolume} {volume} />
             </div>
             <div class="flex flex-row justify-between bottom">
                 <button>Help</button>
