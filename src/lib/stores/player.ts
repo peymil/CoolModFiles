@@ -1,14 +1,14 @@
 import { get, writable, readable, derived } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import { getRandomNumber } from '../../utils';
-type MinimalSongDetails = {
+export type SongHistoryDetails = {
     id: string;
     title: string;
 };
 class PlayerStore {
     id: Writable<string> = writable('');
     maxId: number;
-    songHistory: Writable<MinimalSongDetails[]> = writable([]);
+    songHistory: Writable<SongHistoryDetails[]> = writable([]);
     songHistoryPos: Writable<number> = writable(-1);
     volume: Writable<number> = writable(0);
     playerInstance: ChiptuneJsPlayer;
