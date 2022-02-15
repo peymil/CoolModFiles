@@ -1,11 +1,11 @@
 <script lang="ts">
     import Slider from 'svelte-range-slider-pips';
-    import PlayerStoreClass from '$lib/stores/player';
+    import PlayerStore from '$lib/stores/player';
     import { onMount } from 'svelte';
-    import { getRandomNumber } from '../utils';
     import VoiceButton from './VoiceButton.svelte';
-    import player from '$lib/stores/player';
-    const PlayerStore = new PlayerStoreClass($$props.maxId);
+    import Playlist from './History.svelte';
+import { writable } from 'svelte/store';
+
     const {
         loading,
         isPlaying,
@@ -16,35 +16,36 @@
         id,
         prettifiedDuration,
         prettifiedPosition,
+        songHistory,
     } = PlayerStore;
-
+    let positionInsideArray: number[] = [0];
+    let historyVisible = writable(false)
     let initalStart = true;
-
+    position.subscribe((newPos) => positionInsideArray[0] = newPos)
+    
     onMount(async () => {
-        PlayerStore.setup();
+        PlayerStore.setup($$props.maxId);
         await PlayerStore.next();
     });
-    
-    $: console.log($position);
-    $: console.log($isPlaying);
 </script>
 
-{#if $loading}
+<!-- {#if $loading}
     <h1>Loading...</h1>
-    <!-- {:else if initalStart}
+    {:else if initalStart}
     <button
         on:click={() => {
             PlayerStore.play();
             initalStart = false;
         }}>Play song</button
-    > -->
-{:else}
-    <div class="player justify-self-center flex md:w-7/12 lg:w-5/12 xl:w-1/4 2xl:w-1/5 opacity-95">
-        <div class="p-4 items-center w-full">
-            <div class="flex relative flex-col items-center">
+    >
+{:else} -->
+    <div class="player relative p-5 md:w-7/12 lg:w-5/12 xl:w-1/4 2xl:w-1/5">
+        <div class="relative z-50 ">
+            <div class="flex relative flex-col items-center z-50">
                 <button class="absolute right-0">Share</button>
                 <div class="absolute left-0 flex flex-col h-40">
                     <button>Download</button>
+                    <button on:click={() => {historyVisible.update((prev) => !prev)}}>Playlist</button>
                     <button>Favorite</button>
                 </div>
                 <img
@@ -52,11 +53,11 @@
                     alt="player animation gif"
                     src={$isPlaying ? 'images/disc_anim.gif' : 'images/disc_idle.gif'}
                 />
-                <h3>{$metaData.title.toUpperCase()}</h3>
+                <h3>{$loading ? "Loading...": $metaData.title.toUpperCase()}</h3>
                 <div class="description w-full overflow-y-auto overflow-x-hidden h-52">
-                    <div>Type: {$metaData.type}</div>
-                    <div>Track Id: {$id}</div>
-                    <div>Message: {$metaData.message}</div>
+                    <div>Type: {$loading ? "Loading..." : $metaData.type}</div>
+                    <div>Track Id: {$loading ? "Loading..." : $id}</div>
+                    <div>Message: {$loading ? "Loading..." : $metaData.message}</div>
                 </div>
             </div>
 
@@ -65,18 +66,20 @@
                 min={0}
                 max={$duration}
                 springValues={{ stiffness: 1, damping: 1 }}
-                bind:values={$position}
+                bind:values={positionInsideArray}
                 on:change={({ detail: { value } }) => PlayerStore.seek(value)}
             />
             <div class="flex justify-between text-xs">
                 <span>{$prettifiedPosition}</span>
                 <span>{$prettifiedDuration}</span>
             </div>
-            <div class="flex flex-row w-full justify-around">
-                <button on:click={PlayerStore.previous}>Prev</button>
-                <button on:click={PlayerStore.togglePause}>{$isPlaying ? 'Pause' : 'Play'}</button>
-                <button on:click={PlayerStore.next}>Next</button>
-                <VoiceButton onVolumeChange={PlayerStore.setVolume} {volume} />
+            <div class="flex flex-row w-full justify-evenly">
+                <button on:click={() => PlayerStore.previous()}>Prev</button>
+                <button on:click={() => PlayerStore.togglePause()}
+                    >{$isPlaying ? 'Pause' : 'Play'}</button
+                >
+                <button on:click={() => PlayerStore.next()}>Next</button>
+                <VoiceButton onVolumeChange={(vol) => PlayerStore.setVolume(vol)} {volume} />
             </div>
             <div class="flex flex-row justify-between bottom">
                 <button>Help</button>
@@ -86,17 +89,23 @@
                 </div>
             </div>
         </div>
+        <Playlist {songHistory} currentSongId={$id} visible={historyVisible} onClick={(songId) => {
+            PlayerStore.load(songId)
+        }}/>
+
     </div>
-{/if}
+
+<!-- {/if} -->
 
 <style lang="scss">
     .player {
-        @apply p-3 bg-black text-white;
+        @apply bg-black text-white;
         box-shadow: 5px 5px 10px 3px rgba(0, 0, 0, 0.75);
         &__gif {
             width: 3em;
         }
     }
+
     .description {
         color: #8e8e8e;
         scrollbar-color: #bd00ff transparent;

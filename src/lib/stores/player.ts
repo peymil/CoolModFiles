@@ -9,20 +9,20 @@ class PlayerStore {
     id: Writable<string> = writable('');
     maxId: number;
     songHistory: Writable<MinimalSongDetails[]> = writable([]);
-    songHistoryPos: Writable<number> = writable(0);
+    songHistoryPos: Writable<number> = writable(-1);
     volume: Writable<number> = writable(0);
     playerInstance: ChiptuneJsPlayer;
     buffer: AudioBuffer;
     loading: Writable<boolean> = writable(true);
     isPlaying: Writable<boolean> = writable(false);
     metaData: Writable<ReturnType<ChiptuneJsPlayer['metadata']>> = writable(null);
-    position: Writable<number[]> = writable([0], (set) => {
+    position: Writable<number> = writable(0, (set) => {
         let positionInterval;
         this.isPlaying.subscribe((isPlaying) => {
             if (isPlaying && !positionInterval) {
                 positionInterval = setInterval(() => {
                     const newPosition = this.playerInstance.getPosition();
-                    set([newPosition]);
+                    set(newPosition);
                     if (newPosition === 0) {
                         clearInterval(positionInterval);
                     }
@@ -34,10 +34,10 @@ class PlayerStore {
         return () => clearInterval(positionInterval);
     });
     prettifiedPosition = derived(this.position, ($position) => {
-        const minutes = Math.floor($position[0] / 60)
+        const minutes = Math.floor($position / 60)
             .toString()
             .padStart(2, '0');
-        const seconds = Math.floor($position[0] % 60)
+        const seconds = Math.floor($position % 60)
             .toString()
             .padStart(2, '0');
         return `${minutes}:${seconds}`;
@@ -52,12 +52,11 @@ class PlayerStore {
             .padStart(2, '0');
         return `${minutes}:${seconds}`;
     });
-    constructor(maxId: number) {
-        this.maxId = maxId;
-    }
-    setup(volume = 0) {
+
+    setup(maxId:number,volume = 0) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
+        this.maxId = maxId;
         this.playerInstance = new ChiptuneJsPlayer(new ChiptuneJsConfig(0, volume));
         console.log('[player] player initialized');
     }
@@ -74,10 +73,12 @@ class PlayerStore {
 
     async load(idToLoad: string) {
         this.loading.set(true);
+        this.unload()
         this.buffer = await this.playerInstance.load(`jsplayer.php?moduleid=${idToLoad}`);
         this.playerInstance.play(this.buffer);
         this.metaData.set(this.playerInstance.metadata());
         this.duration.set(this.playerInstance.duration());
+        this.position.set(0)
         this.id.set(idToLoad);
         this.loading.set(false);
         this.isPlaying.set(true);
@@ -87,12 +88,15 @@ class PlayerStore {
     /**
      * Load previously played song. If there is no previous song do nothing.
      */
-    previous() {
+    async previous() {
         const songHistoryPos = get(this.songHistoryPos);
         if (songHistoryPos > 0) {
             const songHistory = get(this.songHistory);
-            const prevId = songHistory[songHistoryPos].id;
-            this.load(prevId);
+            const prevId = songHistory[songHistoryPos -1].id;
+            await this.load(prevId);
+            this.songHistoryPos.update((prev) => prev - 1)
+            // Temporary solution for chiptune auto start
+            this.unpause()
         }
     }
 
@@ -102,7 +106,7 @@ class PlayerStore {
     async next() {
         const songHistoryPos = get(this.songHistoryPos);
         const songHistory = get(this.songHistory);
-        if (songHistory.length - 1 <= songHistoryPos) {
+        if (songHistory.length - 1 === songHistoryPos) {
             await this.loadRandomMod();
             this.songHistory.update((prevSongHistory) => [
                 ...prevSongHistory,
@@ -110,16 +114,15 @@ class PlayerStore {
             ]);
         } else {
             const _songHistory = get(this.songHistory);
-            const nextId = _songHistory[songHistoryPos].id;
-            this.songHistoryPos.update((prev) => prev + 1)
+            const nextId = _songHistory[songHistoryPos + 1].id;
             await this.load(nextId);
         }
+        this.songHistoryPos.update((prev) => prev + 1)
+        // Temporary solution for chiptune auto start
+        this.playerInstance.unpause();
 
     }
 
-    /**
-     * Unload song. Seems useless :/
-     */
     unload() {
         this.playerInstance.stop();
         this.isPlaying.set(false);
@@ -131,7 +134,7 @@ class PlayerStore {
      */
     seek(newPosition: number) {
         this.playerInstance.seek(newPosition);
-        this.position.set([newPosition]);
+        this.position.set(newPosition);
     }
 
     /**
@@ -146,7 +149,7 @@ class PlayerStore {
 
     togglePause() {
         this.playerInstance.togglePause();
-        this.isPlaying.set(!get(this.isPlaying));
+        this.isPlaying.update(isPLaying => !isPLaying);
         console.log(`[player] Player ${get(this.isPlaying) ? 'resume' : 'pause'}`);
     }
 
@@ -156,9 +159,9 @@ class PlayerStore {
     }
 
     unpause() {
-        this.isPlaying.set(false);
+        this.isPlaying.set(true);
         this.playerInstance.unpause();
     }
 }
 
-export default PlayerStore;
+export default new PlayerStore();
