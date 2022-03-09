@@ -20,18 +20,30 @@ class PlayerStore {
         let positionInterval;
         this.isPlaying.subscribe((isPlaying) => {
             if (isPlaying && !positionInterval) {
+                const duration = get(this.duration)
                 positionInterval = setInterval(() => {
-                    const newPosition = this.playerInstance.getPosition();
-                    set(newPosition);
-                    if (newPosition === 0) {
+                    const newPosition = this.playerInstance.getPosition() || duration;
+                    //If song is ended
+                    if (newPosition >= duration) {
+                        this.loadRandomMod()
+                    }
+                    else if (newPosition === 0) {
                         clearInterval(positionInterval);
                     }
+                    else {
+                        set(newPosition);
+                    }
+
                 }, 300);
             } else {
                 clearInterval(positionInterval);
+                positionInterval = undefined
             }
         });
-        return () => clearInterval(positionInterval);
+        return () => {
+            clearInterval(positionInterval);
+            positionInterval = undefined
+        };
     });
     prettifiedPosition = derived(this.position, ($position) => {
         const minutes = Math.floor($position / 60)
@@ -53,7 +65,7 @@ class PlayerStore {
         return `${minutes}:${seconds}`;
     });
 
-    setup(maxId:number,volume = 0) {
+    setup(maxId: number, volume = 0) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         this.maxId = maxId;
@@ -92,7 +104,7 @@ class PlayerStore {
         const songHistoryPos = get(this.songHistoryPos);
         if (songHistoryPos > 0) {
             const songHistory = get(this.songHistory);
-            const prevId = songHistory[songHistoryPos -1].id;
+            const prevId = songHistory[songHistoryPos - 1].id;
             await this.load(prevId);
             this.songHistoryPos.update((prev) => prev - 1)
             // Temporary solution for chiptune auto start
@@ -120,6 +132,7 @@ class PlayerStore {
         this.songHistoryPos.update((prev) => prev + 1)
         // Temporary solution for chiptune auto start
         this.playerInstance.unpause();
+        this.isPlaying.set(true)
 
     }
 
