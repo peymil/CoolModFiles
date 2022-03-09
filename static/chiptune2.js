@@ -9,9 +9,8 @@ libopenmpt.locateFile = function (name) {
     return `../bin/${name}`;
 };
 
-let ChiptuneAudioContext = {};
 
-ChiptuneAudioContext = window.AudioContext || window.webkitAudioContext;
+const ChiptuneAudioContext = window.AudioContext || window.webkitAudioContext;
 
 function ChiptuneJsConfig(repeatCount, volume) {
     this.repeatCount = repeatCount;
@@ -116,7 +115,6 @@ ChiptuneJsPlayer.prototype.play = function (buffer) {
     libopenmpt._openmpt_module_set_repeat_count(processNode.modulePtr, this.config.repeatCount);
     this.currentPlayingNode = processNode;
     processNode.connect(this.context.destination);
-    this.currentPlayingNode.togglePause();
 };
 
 /**
@@ -151,6 +149,12 @@ ChiptuneJsPlayer.prototype.pause = function () {
 ChiptuneJsPlayer.prototype.togglePause = function () {
     if (this.currentPlayingNode != null) {
         this.currentPlayingNode.togglePause();
+    }
+};
+ChiptuneJsPlayer.prototype.unpause = function () {
+    if (this.currentPlayingNode != null) {
+        console.log("played chip");
+        this.currentPlayingNode.unpause();
     }
 };
 
